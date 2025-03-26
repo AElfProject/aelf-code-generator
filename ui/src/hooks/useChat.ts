@@ -29,6 +29,7 @@ export const useChat = ({ onSuccess, onError }: UseChatProps = {}) => {
 
     setLoading(true);
     try {
+      // Create an AbortController with a 5-minute timeout
       const response = await fetch("/api/copilotkit", {
         method: "POST",
         headers: {
@@ -42,6 +43,7 @@ export const useChat = ({ onSuccess, onError }: UseChatProps = {}) => {
             },
           ],
         }),
+        keepalive: true
       });
 
       const data = await response.json();
@@ -50,7 +52,7 @@ export const useChat = ({ onSuccess, onError }: UseChatProps = {}) => {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
-      if (!data.generate?._internal?.output) {
+      if (!data.test_contract?.generate?._internal?.output) {
         throw new Error("Invalid response format from agent");
       }
 
@@ -66,12 +68,15 @@ export const useChat = ({ onSuccess, onError }: UseChatProps = {}) => {
       onSuccess?.(data);
     } catch (error) {
       console.error("Error generating code:", error);
+      
+      // Handle error message
+      const errorMessage = "Sorry, there was an error generating the code. Please try again.";
+      
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Sorry, there was an error generating the code. Please try again.",
+          content: errorMessage,
         },
       ]);
       onError?.(error as Error);

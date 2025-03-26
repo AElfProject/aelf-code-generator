@@ -21,7 +21,7 @@ export const ChatWindow = ({ fullScreen = false }: ChatWindowProps) => {
       onSuccess: async (data: AgentResponse) => {
         const allFiles: FileContent[] = extractFiles(data);
         updateFiles(allFiles);
-        await saveWorkspaceData(workspaces?.length ?? 0, allFiles);
+        await saveWorkspaceData(workspaces?.length ?? 0, allFiles, data);
       },
     });
 
@@ -55,19 +55,20 @@ export const ChatWindow = ({ fullScreen = false }: ChatWindowProps) => {
 
 const extractFiles = (data: AgentResponse): FileContent[] => {
   return [
-    data.generate._internal.output.contract,
-    data.generate._internal.output.state,
-    data.generate._internal.output.proto,
-    data.generate._internal.output.reference,
-    data.generate._internal.output.project,
-    ...(data.generate._internal.output.metadata || []),
+    data.test_contract?.generate._internal.output.contract,
+    data.test_contract?.generate._internal.output.state,
+    data.test_contract?.generate._internal.output.proto,
+    data.test_contract?.generate._internal.output.reference,
+    data.test_contract?.generate._internal.output.project,
+    ...(data.test_contract?.generate._internal.output.metadata || []),
   ]
     .filter((file): file is { path: string; content: string } => Boolean(file?.path && file?.content))
     .map((file) => ({ path: file.path, contents: file.content }));
 };
 
-const saveWorkspaceData = async (workspaceCount: number, allFiles: FileContent[]) => {
-  const workspace = `project-${workspaceCount + 1}`;
+const saveWorkspaceData = async (workspaceCount: number, allFiles: FileContent[], data: AgentResponse) => {
+  const contractName = data.test_contract?.generate._internal.contract_name || '';
+  const workspace = contractName ? contractName : `project-${workspaceCount + 1}`;
   await db.workspaces.add({ name: workspace, template: "", dll: "" });
   await db.files.bulkAdd(
     allFiles.map(({ path, contents }) => ({ path: `/workspace/${workspace}/${path}`, contents }))
